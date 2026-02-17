@@ -88,8 +88,8 @@ namespace BitchlandLetsHaveSexHereChatBepInEx
 
             configAddChatOptionToXoxa = Config.Bind(pluginKey,
                                   "AddChatOptionToXoxa",
-                                  true,
-                                 "Whether or not you want add chat option to xoxa (if true it removes the default chat from xoxa) (default true also yes, you want it, and false = no)");
+                                  false,
+                                 "Whether or not you want add chat option to xoxa (if true it removes the default chat from xoxa) (default false also yes, you dont want it, and true = yes)");
 
             configAddChatOptionToArmyBuildWorkers = Config.Bind(pluginKey,
                       "AddChatOptionToArmyBuildWorkers",
