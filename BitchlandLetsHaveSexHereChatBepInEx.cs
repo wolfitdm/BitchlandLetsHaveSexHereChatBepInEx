@@ -4,6 +4,7 @@ using BepInEx.Logging;
 using BepInEx.Unity.Mono;
 using HarmonyLib;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 
@@ -332,11 +333,14 @@ namespace BitchlandLetsHaveSexHereChatBepInEx
                 Logger.LogError(ex.ToString());
             }
         }
-		
-		public static void PatchHarmonyMethodUnity(Type originalClass, string originalMethodName, string patchedMethodName, bool usePrefix, bool usePostfix, Type[] parameters = null)
+
+        public static void PatchHarmonyMethodUnity(Type originalClass, string originalMethodName, string patchedMethodName, bool usePrefix, bool usePostfix, Type[] parameters = null)
         {
+            string uniqueId = "com.wolfitdm.BitchlandLetsHaveSexHereChatBepInEx";
+            Type uniqueType = typeof(BitchlandLetsHaveSexHereChatBepInEx);
+
             // Create a new Harmony instance with a unique ID
-            var harmony = new Harmony("com.wolfitdm.BitchlandLetsHaveSexHereChatBepInEx");
+            var harmony = new Harmony(uniqueId);
 
             if (originalClass == null)
             {
@@ -344,24 +348,16 @@ namespace BitchlandLetsHaveSexHereChatBepInEx
                 return;
             }
 
-            // Or apply patches manually
-            MethodInfo original = null;
+            MethodInfo patched = null;
 
-            if (parameters == null)
+            try
             {
-                original = AccessTools.Method(originalClass, originalMethodName);
-            } else
-            {
-                original = AccessTools.Method(originalClass, originalMethodName, parameters);
+                patched = AccessTools.Method(uniqueType, patchedMethodName);
             }
-
-            if (original == null)
+            catch (Exception ex)
             {
-                Logger.LogInfo($"AccessTool.Method original {originalMethodName} == null");
-                return;
+                patched = null;
             }
-
-            MethodInfo patched = AccessTools.Method(typeof(BitchlandLetsHaveSexHereChatBepInEx), patchedMethodName);
 
             if (patched == null)
             {
@@ -370,8 +366,96 @@ namespace BitchlandLetsHaveSexHereChatBepInEx
 
             }
 
+            // Or apply patches manually
+            MethodInfo original = null;
+
+            try
+            {
+                if (parameters == null)
+                {
+                    original = AccessTools.Method(originalClass, originalMethodName);
+                }
+                else
+                {
+                    original = AccessTools.Method(originalClass, originalMethodName, parameters);
+                }
+            }
+            catch (AmbiguousMatchException ex)
+            {
+                Type[] nullParameters = new Type[] { };
+                try
+                {
+                    if (patched == null)
+                    {
+                        parameters = nullParameters;
+                    }
+
+                    ParameterInfo[] parameterInfos = patched.GetParameters();
+
+                    if (parameterInfos == null || parameterInfos.Length == 0)
+                    {
+                        parameters = nullParameters;
+                    }
+
+                    List<Type> parametersN = new List<Type>();
+
+                    for (int i = 0; i < parameterInfos.Length; i++)
+                    {
+                        ParameterInfo parameterInfo = parameterInfos[i];
+
+                        if (parameterInfo == null)
+                        {
+                            continue;
+                        }
+
+                        if (parameterInfo.Name == null)
+                        {
+                            continue;
+                        }
+
+                        if (parameterInfo.Name.StartsWith("__"))
+                        {
+                            continue;
+                        }
+
+                        Type type = parameterInfos[i].ParameterType;
+
+                        if (type == null)
+                        {
+                            continue;
+                        }
+
+                        parametersN.Add(type);
+                    }
+
+                    parameters = parametersN.ToArray();
+                }
+                catch (Exception ex2)
+                {
+                    parameters = nullParameters;
+                }
+
+                try
+                {
+                    original = AccessTools.Method(originalClass, originalMethodName, parameters);
+                }
+                catch (Exception ex2)
+                {
+                    original = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                original = null;
+            }
+
+            if (original == null)
+            {
+                Logger.LogInfo($"AccessTool.Method original {originalMethodName} == null");
+                return;
+            }
+
             HarmonyMethod patchedMethod = new HarmonyMethod(patched);
-			
             var prefixMethod = usePrefix ? patchedMethod : null;
             var postfixMethod = usePostfix ? patchedMethod : null;
 
@@ -428,16 +512,38 @@ namespace BitchlandLetsHaveSexHereChatBepInEx
                 _this = person != null ? person.ThisPersonInt : Main.Instance.Player.ThisPersonInt;
             }
 
+            Person personEx = _this != null ? _this.ThisPerson : Main.Instance.Player;
+
             _gameplay.AddChatOption("Lets have sex here", (Action)(() =>
             {
+                if (_this == null)
+                {
+                    return;
+                }
+
+                if (personEx == null)
+                {
+                    return;
+                }
+
+                if (personEx.IsPlayer)
+                {
+                    _this.EndTheChat();
+                    return;
+                }
+
                 if (maxRelationShipIfYouHaveSex)
-                    _this.ThisPerson.Favor += 10000;
+                {
+                    personEx.CreatePersonRelationship();
+                    personEx.Favor = 100000000;
+                }
+
                 if (Main.Instance.Player.HasPenis)
-                    Main.Instance.SexScene.SpawnSexScene(2, 0, Main.Instance.Player, _this.ThisPerson);
+                    Main.Instance.SexScene.SpawnSexScene(2, 0, Main.Instance.Player, personEx);
                 else if (_this.ThisPerson.HasPenis)
-                    Main.Instance.SexScene.SpawnSexScene(2, 0, _this.ThisPerson, Main.Instance.Player);
+                    Main.Instance.SexScene.SpawnSexScene(2, 0, personEx, Main.Instance.Player);
                 else
-                    Main.Instance.SexScene.SpawnSexScene(2, 0, Main.Instance.Player, _this.ThisPerson);
+                    Main.Instance.SexScene.SpawnSexScene(2, 0, Main.Instance.Player, personEx);
                 _this.EndTheChat();
             }));
         }
