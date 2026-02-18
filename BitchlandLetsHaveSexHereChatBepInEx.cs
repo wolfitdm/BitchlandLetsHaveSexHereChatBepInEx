@@ -536,6 +536,8 @@ namespace BitchlandLetsHaveSexHereChatBepInEx
                 {
                     personEx.CreatePersonRelationship();
                     personEx.Favor = 100000000;
+                    personEx.SexMultiplier = 1.5f;
+                    personEx.SexMAddictionultiplier = 2.0f;
                 }
 
                 if (Main.Instance.Player.HasPenis)
